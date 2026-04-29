@@ -294,15 +294,25 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(res => res.ok ? res.json() : {})
             .then(fmt => {
                 sheetFormatting = fmt || {};
-                // 2. Carrega a planilha do servidor (a versão mais recente salva)
+                // 2. Tenta o workbook salvo pelo servidor (versão mais recente)
                 return fetch('/load_workbook');
             })
             .then(res => {
-                if (!res.ok) throw new Error('workbook not found on server');
-                return res.arrayBuffer();
+                if (res.ok) {
+                    console.log('✅ Workbook carregado do servidor (/load_workbook)');
+                    return res.arrayBuffer();
+                }
+                // 3. Sem workbook salvo — fallback para o arquivo original estático
+                console.log('ℹ️ Sem workbook salvo, carregando arquivo original...');
+                return fetch('Planilha%20Cris.xlsx')
+                    .then(r => {
+                        if (!r.ok) throw new Error('Arquivo original não encontrado');
+                        return r.arrayBuffer();
+                    });
             })
             .catch(err => {
-                console.warn('Servidor indisponível, tentando IndexedDB:', err.message);
+                console.warn('Tentando IndexedDB como fallback:', err.message);
+                // 4. Último recurso: IndexedDB do navegador
                 return openDB().then(db => {
                     return new Promise((resolve, reject) => {
                         const tx = db.transaction(STORE_NAME, 'readonly');
