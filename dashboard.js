@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.head.appendChild(style);
 
     let currentWorkbook = null;
+    let currentCategory = 'Planilha';
 
     const excelTabs      = document.getElementById('excelTabs');
     const tableContainer = document.querySelector('.table-responsive');
@@ -60,6 +61,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterStatus   = document.getElementById('filterStatus');
 
     if (filterStatus) filterStatus.style.display = 'none';
+
+    // ── Sidebar Category Navigation ─────────────────────────────
+    const navPlanilha = document.getElementById('navPlanilha');
+    const navAguaDesinsetizacao = document.getElementById('navAguaDesinsetizacao');
+    const navAguaDesinsetizacaoEmail = document.getElementById('navAguaDesinsetizacaoEmail');
+    const navAgua = document.getElementById('navAgua');
+    const navAguaEmail = document.getElementById('navAguaEmail');
+    const navBoletoMaos = document.getElementById('navBoletoMaos');
+    const navNotaFiscal = document.getElementById('navNotaFiscal');
+
+    function updateActiveNav(activeEl) {
+        document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+        if (activeEl) activeEl.classList.add('active');
+    }
+
+    const navItems = [
+        { el: navPlanilha, cat: 'Planilha' },
+        { el: navAguaDesinsetizacao, cat: 'agua e desinsetizacao' },
+        { el: navAguaDesinsetizacaoEmail, cat: 'agua e desinsetizacao email' },
+        { el: navAgua, cat: 'agua' },
+        { el: navAguaEmail, cat: 'agua email' },
+        { el: navBoletoMaos, cat: 'boleto em maos' },
+        { el: navNotaFiscal, cat: 'Nota Fiscal' }
+    ];
+
+    navItems.forEach(item => {
+        if (item.el) {
+            item.el.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentCategory = item.cat;
+                updateActiveNav(item.el);
+                if (currentWorkbook) buildNav(currentWorkbook);
+            });
+        }
+    });
 
     // ── IndexedDB Persistence Helpers ─────────────────────────────
     const DB_NAME = 'CristianaExcelDB';
@@ -272,6 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildNav(workbook) {
         excelTabs.innerHTML = '';
+        const headerCatContainer = document.getElementById('headerCategoryContainer');
+        if (headerCatContainer) headerCatContainer.innerHTML = '';
 
         const names = workbook.SheetNames;
         const letterToIndex  = {};   // letter → index sheet name
@@ -315,6 +353,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!letterToLeaves['#']) letterToLeaves['#'] = [];
             letterToLeaves['#'].push(name);
         });
+
+        // Filter by category if not 'Planilha'
+        if (currentCategory !== 'Planilha') {
+            for (let letter in letterToLeaves) {
+                letterToLeaves[letter] = letterToLeaves[letter].filter(name => {
+                    const raw = localStorage.getItem('condo_cat_' + name);
+                    if (!raw) return false;
+                    try {
+                        const cats = JSON.parse(raw);
+                        return Array.isArray(cats) ? cats.includes(currentCategory) : cats === currentCategory;
+                    } catch (e) {
+                        return raw === currentCategory;
+                    }
+                });
+                if (letterToLeaves[letter].length === 0) {
+                    delete letterToLeaves[letter];
+                }
+            }
+            for (let letter in letterToIndex) {
+                if (!letterToLeaves[letter]) {
+                    delete letterToIndex[letter];
+                }
+            }
+        }
 
         // Store sheetToCondo globally or pass it along
         workbook._sheetToCondo = sheetToCondo;
@@ -412,6 +474,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ─────────────────────────────────────────────────────────────
 
     function showLetterGroup(workbook, letter, letterToIndex, letterToLeaves, breadcrumb, letterBar) {
+        const headerCatContainer = document.getElementById('headerCategoryContainer');
+        if (headerCatContainer) headerCatContainer.innerHTML = '';
         // Update breadcrumb
         updateBreadcrumb(breadcrumb, letter, null, () => {
             // clicking letter in breadcrumb reloads the group (same place)
@@ -525,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const range  = XLSX.utils.decode_range(ref);
         const maxRow = Math.min(range.e.r, 1500);
-        const maxCol = Math.max(range.e.c, 20); // Force at least 20 columns to be "inteira"
+        const maxCol = 18; // Force exactly 18 columns (A-S) to match the layout
 
         // ── Detect header rows ──────────────────────────────────
         let colHeaderRow = -1;
@@ -573,7 +637,143 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // ── Build table ─────────────────────────────────────────
-        let html = `<div style="overflow:auto; max-height:calc(100vh - 180px); background:white;">`;
+        let savedCats = [];
+        const rawCats = localStorage.getItem('condo_cat_' + sheetName);
+        if (rawCats) {
+            try {
+                savedCats = JSON.parse(rawCats);
+                if (!Array.isArray(savedCats)) savedCats = [savedCats];
+            } catch (e) {
+                savedCats = [rawCats];
+            }
+        }
+        
+        // Populate header category container
+        const headerCatContainer = document.getElementById('headerCategoryContainer');
+        if (headerCatContainer) {
+            headerCatContainer.innerHTML = `
+                <span style="color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px;">Destino:</span>
+                <button class="cat-chip ${savedCats.length === 0 ? 'active' : ''}" data-cat="Planilha">
+                    <i class="${savedCats.length === 0 ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} check-icon" style="margin-right: 4px;"></i>
+                    <i class="fa-solid fa-ban" style="margin-right: 4px;"></i> Nenhuma
+                </button>
+                <button class="cat-chip ${savedCats.includes('agua e desinsetizacao') ? 'active' : ''}" data-cat="agua e desinsetizacao">
+                    <i class="${savedCats.includes('agua e desinsetizacao') ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} check-icon" style="margin-right: 4px;"></i>
+                    <i class="fa-solid fa-droplet" style="margin-right: 4px;"></i> Água/Desinset.
+                </button>
+                <button class="cat-chip ${savedCats.includes('agua e desinsetizacao email') ? 'active' : ''}" data-cat="agua e desinsetizacao email">
+                    <i class="${savedCats.includes('agua e desinsetizacao email') ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} check-icon" style="margin-right: 4px;"></i>
+                    <i class="fa-solid fa-envelope" style="margin-right: 4px;"></i> Água/Desins. Email
+                </button>
+                <button class="cat-chip ${savedCats.includes('agua') ? 'active' : ''}" data-cat="agua">
+                    <i class="${savedCats.includes('agua') ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} check-icon" style="margin-right: 4px;"></i>
+                    <i class="fa-solid fa-faucet" style="margin-right: 4px;"></i> Água
+                </button>
+                <button class="cat-chip ${savedCats.includes('agua email') ? 'active' : ''}" data-cat="agua email">
+                    <i class="${savedCats.includes('agua email') ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} check-icon" style="margin-right: 4px;"></i>
+                    <i class="fa-solid fa-envelope-open-text" style="margin-right: 4px;"></i> Água Email
+                </button>
+                <button class="cat-chip ${savedCats.includes('boleto em maos') ? 'active' : ''}" data-cat="boleto em maos">
+                    <i class="${savedCats.includes('boleto em maos') ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} check-icon" style="margin-right: 4px;"></i>
+                    <i class="fa-solid fa-hand-holding-dollar" style="margin-right: 4px;"></i> Boleto Mãos
+                </button>
+                <button class="cat-chip ${savedCats.includes('Nota Fiscal') ? 'active' : ''}" data-cat="Nota Fiscal">
+                    <i class="${savedCats.includes('Nota Fiscal') ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} check-icon" style="margin-right: 4px;"></i>
+                    <i class="fa-solid fa-file-invoice-dollar" style="margin-right: 4px;"></i> Nota Fiscal
+                </button>
+            `;
+
+            // Style the chips if not already styled
+            if (!document.getElementById('catChipStyles')) {
+                const style = document.createElement('style');
+                style.id = 'catChipStyles';
+                style.textContent = `
+                    .cat-chip {
+                        background: rgba(30, 41, 59, 0.7);
+                        color: #94a3b8;
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        padding: 6px 12px;
+                        border-radius: 20px;
+                        font-size: 12px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .cat-chip:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                        color: #f1f5f9;
+                    }
+                    .cat-chip.active {
+                        background: #6366f1;
+                        color: white;
+                        border-color: #6366f1;
+                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Attach events
+            headerCatContainer.querySelectorAll('.cat-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const selectedCat = btn.getAttribute('data-cat');
+                    let savedCats = [];
+                    const rawCats = localStorage.getItem('condo_cat_' + sheetName);
+                    if (rawCats) {
+                        try {
+                            savedCats = JSON.parse(rawCats);
+                            if (!Array.isArray(savedCats)) savedCats = [rawCats];
+                        } catch (e) {
+                            savedCats = [rawCats];
+                        }
+                    }
+                    
+                    if (selectedCat === 'Planilha') {
+                        savedCats = [];
+                        localStorage.removeItem('condo_cat_' + sheetName);
+                    } else {
+                        const index = savedCats.indexOf(selectedCat);
+                        if (index > -1) {
+                            savedCats.splice(index, 1);
+                        } else {
+                            savedCats.push(selectedCat);
+                        }
+                        
+                        if (savedCats.length === 0) {
+                            localStorage.removeItem('condo_cat_' + sheetName);
+                        } else {
+                            localStorage.setItem('condo_cat_' + sheetName, JSON.stringify(savedCats));
+                        }
+                    }
+                    
+                    // Update active state and icons
+                    headerCatContainer.querySelectorAll('.cat-chip').forEach(b => {
+                        const cat = b.getAttribute('data-cat');
+                        const icon = b.querySelector('.check-icon');
+                        
+                        if (cat === 'Planilha') {
+                            if (savedCats.length === 0) {
+                                b.classList.add('active');
+                                if (icon) icon.className = 'fa-solid fa-square-check check-icon';
+                            } else {
+                                b.classList.remove('active');
+                                if (icon) icon.className = 'fa-regular fa-square check-icon';
+                            }
+                        } else {
+                            if (savedCats.includes(cat)) {
+                                b.classList.add('active');
+                                if (icon) icon.className = 'fa-solid fa-square-check check-icon';
+                            } else {
+                                b.classList.remove('active');
+                                if (icon) icon.className = 'fa-regular fa-square check-icon';
+                            }
+                        }
+                    });
+                });
+            });
+        }
+
+        let html = `<div style="overflow:auto; max-height:calc(100vh - 220px); background:white;">`;
         html += `<table style="border-collapse:collapse; table-layout:fixed; width:100%; font-family:Calibri,Arial,sans-serif;" id="spreadsheetTable">`;
         
         // Define Column Widths
@@ -694,6 +894,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html += `</tbody></table></div>`;
         tableContainer.innerHTML = html;
+
+
 
         const table = document.getElementById('spreadsheetTable');
         if (table) {
