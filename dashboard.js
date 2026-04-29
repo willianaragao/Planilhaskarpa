@@ -466,30 +466,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const isPaid = pago1 === 'PG' || pago2 === 'PG';
 
-                if (isPaid) {
-                    const parseVal = (str) => {
-                        if (!str) return 0;
-                        let clean = str.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
-                        let num = parseFloat(clean);
-                        return isNaN(num) ? 0 : num;
-                    };
+                const parseVal = (str) => {
+                    if (!str) return 0;
+                    let clean = str.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
+                    let num = parseFloat(clean);
+                    return isNaN(num) ? 0 : num;
+                };
 
-                    const valorNota = parseVal(valorNotaRaw);
-                    const aReceber = parseVal(aReceberRaw);
+                const valorNota = parseVal(valorNotaRaw);
+                const aReceber = parseVal(aReceberRaw);
 
-                    const key = `${mes} / ${ano}`;
-                    if (!financeData[key]) {
-                        financeData[key] = { entrada: 0, faturamento: 0, items: [], mes, ano };
-                    }
+                if (valorNota === 0 && aReceber === 0) continue;
 
-                    financeData[key].entrada += aReceber;
-                    financeData[key].faturamento += valorNota;
-                    financeData[key].items.push({
-                        condominio: sheetToCondo[name] || name,
-                        valorNota,
-                        aReceber
-                    });
+                const key = `${mes} / ${ano}`;
+                if (!financeData[key]) {
+                    financeData[key] = { entrada: 0, faturamento: 0, items: [], mes, ano };
                 }
+
+                financeData[key].faturamento += valorNota;
+                
+                if (isPaid) {
+                    financeData[key].entrada += aReceber;
+                }
+
+                financeData[key].items.push({
+                    condominio: sheetToCondo[name] || name,
+                    valorNota,
+                    aReceber: isPaid ? aReceber : 0,
+                    isPaid
+                });
             }
         });
 
@@ -576,10 +581,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </thead>
                                     <tbody>
                                         ${data.items.map(item => `
-                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); opacity: ${item.isPaid ? 1 : 0.6};">
                                                 <td style="padding: 8px; color: #e2e8f0;">${item.condominio}</td>
                                                 <td style="padding: 8px; color: #cbd5e1;">${item.valorNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                                <td style="padding: 8px; color: #22c55e;">${item.aReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                                <td style="padding: 8px; color: ${item.isPaid ? '#22c55e' : '#94a3b8'};">
+                                                    ${item.isPaid ? item.aReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '<span style="color:#94a3b8;font-size:11px;">R$ 0,00</span>'}
+                                                </td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
