@@ -1365,14 +1365,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     return isNaN(num) ? 0 : num;
                 };
 
+                const customRound = (num) => {
+                    const str = num.toFixed(4);
+                    const dotIdx = str.indexOf('.');
+                    if (dotIdx === -1) return num;
+                    
+                    const thirdDecimal = parseInt(str.charAt(dotIdx + 3));
+                    if (isNaN(thirdDecimal)) return num;
+
+                    if (thirdDecimal <= 5) {
+                        return Math.floor(num * 100) / 100;
+                    } else {
+                        return Math.ceil(num * 100) / 100;
+                    }
+                };
+
                 // Recalculate Formulas for Left Section (A-I)
                 if (c === 3) { // VALOR DA NOTA changed (Col D)
                     const valorNota = parseVal(val);
                     if (valorNota > 0) {
-                        const mo = valorNota * 0.8;
-                        const me = valorNota * 0.2;
-                        const inss = mo * 0.11;
-                        const receber = valorNota - inss;
+                        const mo = customRound(valorNota * 0.8);
+                        const me = customRound(valorNota * 0.2);
+                        const inss = customRound(mo * 0.11);
+                        const receber = customRound(valorNota - inss);
 
                         updateCell(r, 4, mo);
                         updateCell(r, 5, me);
@@ -1395,10 +1410,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (c === 13) { // VALOR DA NOTA changed (Col N)
                     const valorNota = parseVal(val);
                     if (valorNota > 0) {
-                        const mo = valorNota * 0.8;
-                        const me = valorNota * 0.2;
-                        const inss = mo * 0.11;
-                        const receber = valorNota - inss;
+                        const mo = customRound(valorNota * 0.8);
+                        const me = customRound(valorNota * 0.2);
+                        const inss = customRound(mo * 0.11);
+                        const receber = customRound(valorNota - inss);
 
                         updateCell(r, 14, mo);
                         updateCell(r, 15, me);
@@ -1467,10 +1482,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateDataCell(targetRow, 3, origVal || String(valorNota));
 
                         // Calculate Formulas for target row
-                        const mo = valorNota * 0.8;
-                        const me = valorNota * 0.2;
-                        const inss = mo * 0.11;
-                        const receber = valorNota - inss;
+                        const mo = customRound(valorNota * 0.8);
+                        const me = customRound(valorNota * 0.2);
+                        const inss = customRound(mo * 0.11);
+                        const receber = customRound(valorNota - inss);
 
                         updateCell(targetRow, 4, mo);
                         updateCell(targetRow, 5, me);
