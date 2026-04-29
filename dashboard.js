@@ -199,6 +199,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let sheetFormatting = {}; 
     let currentSheetName = ''; 
+    let serverCategories = {};
+
+    function loadCategoriesFromServer() {
+        return fetch('/load_categories')
+            .then(r => r.json())
+            .then(data => {
+                serverCategories = data || {};
+                for (let key in serverCategories) {
+                    localStorage.setItem('condo_cat_' + key, JSON.stringify(serverCategories[key]));
+                }
+            })
+            .catch(err => console.error('Erro ao carregar categorias do servidor:', err));
+    }
+
+    function saveCategoriesToServer() {
+        return fetch('/save_categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(serverCategories)
+        }).catch(err => console.error('Erro ao salvar categorias no servidor:', err));
+    }
 
     function openDB() {
         return new Promise((resolve, reject) => {
@@ -341,13 +362,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 Carregando planilha, aguarde…
             </div>`;
 
-        loadWorkbookFromDB()
-            .then(buf => {
-                if (buf) {
-                    console.log('Planilha carregada do armazenamento persistente.');
-                    currentWorkbook = XLSX.read(new Uint8Array(buf), { type: 'array' });
-                    buildNav(currentWorkbook);
-                } else {
+        loadCategoriesFromServer().finally(() => {
+            loadWorkbookFromDB()
+                .then(buf => {
+                    if (buf) {
+                        console.log('Planilha carregada do armazenamento persistente.');
+                        currentWorkbook = XLSX.read(new Uint8Array(buf), { type: 'array' });
+                        buildNav(currentWorkbook);
+                    } else {
                     // Fallback to server file
                     fetch('Planilha%20Cris.xlsx')
                         .then(r => { if (!r.ok) throw new Error('not found'); return r.arrayBuffer(); })
@@ -380,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </p>`;
                     });
             });
+        });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -695,6 +718,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sheetName = decodeURIComponent(btn.dataset.sheet);
                 if (confirm(`Tem certeza que deseja excluir o condomínio "${sheetName}"?`)) {
                     localStorage.setItem('condo_cat_' + sheetName, JSON.stringify(['excluidos']));
+                    serverCategories[sheetName] = ['excluidos'];
+                    saveCategoriesToServer();
                     alert("Condomínio movido para Excluídos!");
                     buildNav(workbook);
                 }
@@ -870,9 +895,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         if (savedCats.length === 0) {
                             localStorage.removeItem('condo_cat_' + sheetName);
+                            delete serverCategories[sheetName];
                         } else {
                             localStorage.setItem('condo_cat_' + sheetName, JSON.stringify(savedCats));
+                            serverCategories[sheetName] = savedCats;
                         }
+                        saveCategoriesToServer();
                     }
                     
                     // Update active state and icons
