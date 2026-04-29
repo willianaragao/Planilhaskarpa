@@ -992,12 +992,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     let isNumericMonth = !isNaN(parseInt(baseMes));
                     let numericMonth = parseInt(baseMes);
 
-                    let maxFill = 11;
-                    if (isNumericMonth) {
-                        maxFill = 12 - numericMonth;
-                    } else if (monthIdx !== -1) {
-                        maxFill = 11 - monthIdx;
-                    }
+                    let maxFill = 12;
+                    let startYear = parseInt(baseAno);
+                    let hasNumericYear = !isNaN(startYear);
 
                     for (let i = 1; i <= maxFill; i++) {
                         const targetRow = startRow + i;
@@ -1005,17 +1002,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         // 1. Mês
                         let newMes = baseMes;
                         if (isNumericMonth) {
-                            newMes = String(numericMonth + i);
+                            let totalMonths = numericMonth + i - 1;
+                            let wrappedMonth = (totalMonths % 12) + 1;
+                            newMes = String(wrappedMonth);
                         } else if (monthIdx !== -1) {
-                            newMes = monthsArr[(monthIdx + i) % 12];
-                            // Capitalize first letter if base was capitalized
+                            let currentMonthIdx = (monthIdx + i) % 12;
+                            newMes = monthsArr[currentMonthIdx];
                             if (baseMes[0] === baseMes[0].toUpperCase()) {
                                 newMes = newMes.charAt(0).toUpperCase() + newMes.slice(1);
                             }
                         }
                         
                         // 2. Ano
-                        let newAno = baseAno; // Keep same year for simplicity
+                        let newAno = baseAno;
+                        if (hasNumericYear) {
+                            let yearsToAdd = 0;
+                            if (isNumericMonth) {
+                                yearsToAdd = Math.floor((numericMonth + i - 1) / 12);
+                            } else if (monthIdx !== -1) {
+                                yearsToAdd = Math.floor((monthIdx + i) / 12);
+                            }
+                            newAno = String(startYear + yearsToAdd);
+                        }
                         
                         // 3. Parcela
                         let newParcela = String(baseParcela + i);
