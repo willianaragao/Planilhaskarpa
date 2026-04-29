@@ -992,7 +992,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     let isNumericMonth = !isNaN(parseInt(baseMes));
                     let numericMonth = parseInt(baseMes);
 
-                    for (let i = 1; i <= 11; i++) {
+                    let maxFill = 11;
+                    if (isNumericMonth) {
+                        maxFill = 12 - numericMonth;
+                    } else if (monthIdx !== -1) {
+                        maxFill = 11 - monthIdx;
+                    }
+
+                    for (let i = 1; i <= maxFill; i++) {
                         const targetRow = startRow + i;
                         
                         // 1. Mês
