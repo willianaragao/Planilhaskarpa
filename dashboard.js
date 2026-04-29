@@ -452,29 +452,70 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!ref) return;
 
             const range = XLSX.utils.decode_range(ref);
-            const maxRow = Math.min(range.e.r, 1000);
+            const maxRow = Math.min(range.e.r, 1500);
+            const maxCol = 18;
 
-            for (let r = 5; r <= maxRow; r++) {
+            let colHeaderRow = -1;
+            for (let r = range.s.r; r <= Math.min(range.s.r + 12, maxRow); r++) {
+                for (let c = 0; c <= maxCol; c++) {
+                    const v = cellVal(ws, r, c).trim().toLowerCase();
+                    if (v === 'mês' || v === 'mes') { colHeaderRow = r; break; }
+                }
+                if (colHeaderRow >= 0) break;
+            }
+
+            if (colHeaderRow < 0) return;
+
+            const dynamicPagoCols = [];
+            const dynamicValorNotaCols = [];
+            const dynamicAReceberCols = [];
+
+            for (let c = 0; c <= maxCol; c++) {
+                const v = cellVal(ws, colHeaderRow, c).trim().toLowerCase();
+                if (v === 'pago') {
+                    dynamicPagoCols.push(c);
+                } else if (v === 'valor da nota' || v === 'valor nota' || v === 'vl nota' || v.includes('valor da nota')) {
+                    dynamicValorNotaCols.push(c);
+                } else if (v === 'à receber' || v === 'a receber' || v === 'receber' || v.includes('receber')) {
+                    dynamicAReceberCols.push(c);
+                }
+            }
+
+            if (dynamicValorNotaCols.length === 0) dynamicValorNotaCols.push(3);
+            if (dynamicAReceberCols.length === 0) dynamicAReceberCols.push(7);
+            if (dynamicPagoCols.length === 0) dynamicPagoCols.push(8);
+
+            const parseVal = (str) => {
+                if (!str) return 0;
+                let clean = str.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
+                let num = parseFloat(clean);
+                return isNaN(num) ? 0 : num;
+            };
+
+            for (let r = colHeaderRow + 1; r <= maxRow; r++) {
                 const mes = cellVal(ws, r, 0).trim();
                 const ano = cellVal(ws, r, 1).trim();
-                const valorNotaRaw = cellVal(ws, r, 3).trim();
-                const aReceberRaw = cellVal(ws, r, 7).trim();
-                const pago1 = cellVal(ws, r, 8).trim();
-                const pago2 = cellVal(ws, r, 19).trim();
 
                 if (!mes || !ano) continue;
 
-                const isPaid = pago1 === 'PG' || pago2 === 'PG';
+                let valorNota = 0;
+                dynamicValorNotaCols.forEach(c => {
+                    valorNota += parseVal(cellVal(ws, r, c).trim());
+                });
 
-                const parseVal = (str) => {
-                    if (!str) return 0;
-                    let clean = str.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
-                    let num = parseFloat(clean);
-                    return isNaN(num) ? 0 : num;
-                };
+                let aReceber = 0;
+                let isPaid = false;
 
-                const valorNota = parseVal(valorNotaRaw);
-                const aReceber = parseVal(aReceberRaw);
+                dynamicPagoCols.forEach(c => {
+                    const p = cellVal(ws, r, c).trim().toUpperCase();
+                    if (p === 'PG' || p === 'TRUE') isPaid = true;
+                });
+
+                if (isPaid) {
+                    dynamicAReceberCols.forEach(c => {
+                        aReceber += parseVal(cellVal(ws, r, c).trim());
+                    });
+                }
 
                 if (valorNota === 0 && aReceber === 0) continue;
 
