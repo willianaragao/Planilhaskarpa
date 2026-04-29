@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navAguaEmail = document.getElementById('navAguaEmail');
     const navBoletoMaos = document.getElementById('navBoletoMaos');
     const navNotaFiscal = document.getElementById('navNotaFiscal');
+    const navExcluidos = document.getElementById('navExcluidos');
 
     function updateActiveNav(activeEl) {
         document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
@@ -83,7 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { el: navAgua, cat: 'agua' },
         { el: navAguaEmail, cat: 'agua email' },
         { el: navBoletoMaos, cat: 'boleto em maos' },
-        { el: navNotaFiscal, cat: 'Nota Fiscal' }
+        { el: navNotaFiscal, cat: 'Nota Fiscal' },
+        { el: navExcluidos, cat: 'Excluídos' }
     ];
 
     navItems.forEach(item => {
@@ -97,7 +99,99 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ── IndexedDB Persistence Helpers ─────────────────────────────
+    if (navPlanilha) {
+        navPlanilha.addEventListener('click', () => {
+            const submenu = document.getElementById('planilhaSubmenu');
+            const arrow = navPlanilha.querySelector('.dropdown-arrow');
+            if (submenu) {
+                const isHidden = submenu.style.display === 'none';
+                submenu.style.display = isHidden ? 'flex' : 'none';
+                if (arrow) {
+                    arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                }
+            }
+        });
+    }
+
+    // ── Novo Condomínio Modal Logic ────────────────────────────────
+    const btnNewCondo = document.getElementById('btnNewCondo');
+    const newCondoModal = document.getElementById('newCondoModal');
+    const closeNewCondoModal = document.getElementById('closeNewCondoModal');
+    const newCondoForm = document.getElementById('newCondoForm');
+
+    if (btnNewCondo && newCondoModal) {
+        btnNewCondo.addEventListener('click', (e) => {
+            e.preventDefault();
+            newCondoModal.style.display = 'flex';
+        });
+    }
+
+    if (closeNewCondoModal && newCondoModal) {
+        closeNewCondoModal.addEventListener('click', () => {
+            newCondoModal.style.display = 'none';
+        });
+    }
+
+    if (newCondoForm) {
+        newCondoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('condoName').value.trim();
+            const cnpj = document.getElementById('condoCNPJ').value.trim();
+            const rua = document.getElementById('condoRua').value.trim();
+            const bairro = document.getElementById('condoBairro').value.trim();
+            const cep = document.getElementById('condoCEP').value.trim();
+            const cidade = document.getElementById('condoCidade').value.trim();
+            
+            if (!name || !currentWorkbook) return;
+
+            const letter = prompt("Informe a Letra do Grupo para este condomínio (ex: A, B, C):", "A").toUpperCase().trim();
+            if (!letter || letter.length > 2) {
+                alert("Letra inválida!");
+                return;
+            }
+
+            const sheetName = `${name} (${letter})`;
+            
+            if (currentWorkbook.SheetNames.includes(sheetName)) {
+                alert("Já existe uma planilha com este nome!");
+                return;
+            }
+
+            let ws = {
+                "!ref": "A1:H40",
+                "A1": { v: name },
+                "A2": { v: "CNPJ: " + cnpj },
+                "A3": { v: `${rua}, ${bairro}, ${cep}, ${cidade}` },
+                "A5": { v: "Mês" },
+                "B5": { v: "Ano" },
+                "C5": { v: "Parcela" },
+                "D5": { v: "VALOR DA NOTA" },
+                "E5": { v: "M.O" },
+                "F5": { v: "M.E" },
+                "G5": { v: "VALOR DO INSS" },
+                "H5": { v: "À RECEBER" }
+            };
+
+            for (let r = 5; r < 35; r++) {
+                let row_num = r + 1;
+                ws[`E${row_num}`] = { f: `IF(D${row_num}="","",D${row_num}*0.8)` };
+                ws[`F${row_num}`] = { f: `IF(D${row_num}="","",D${row_num}*0.2)` };
+                ws[`G${row_num}`] = { f: `IF(E${row_num}="","",E${row_num}*0.11)` };
+                ws[`H${row_num}`] = { f: `IF(D${row_num}="","",D${row_num}-G${row_num})` };
+            }
+
+            currentWorkbook.SheetNames.push(sheetName);
+            currentWorkbook.Sheets[sheetName] = ws;
+
+            saveWorkbookToDB(currentWorkbook).then(() => {
+                alert("Condomínio criado com sucesso!");
+                newCondoModal.style.display = 'none';
+                newCondoForm.reset();
+                buildNav(currentWorkbook);
+            });
+        });
+    }
     const DB_NAME = 'CristianaExcelDB';
     const DB_VERSION = 1;
     const STORE_NAME = 'workbooks';
@@ -354,27 +448,37 @@ document.addEventListener('DOMContentLoaded', () => {
             letterToLeaves['#'].push(name);
         });
 
-        // Filter by category if not 'Planilha'
-        if (currentCategory !== 'Planilha') {
-            for (let letter in letterToLeaves) {
-                letterToLeaves[letter] = letterToLeaves[letter].filter(name => {
-                    const raw = localStorage.getItem('condo_cat_' + name);
-                    if (!raw) return false;
+        // Filter by category
+        for (let letter in letterToLeaves) {
+            letterToLeaves[letter] = letterToLeaves[letter].filter(name => {
+                const raw = localStorage.getItem('condo_cat_' + name);
+                let cats = [];
+                if (raw) {
                     try {
-                        const cats = JSON.parse(raw);
-                        return Array.isArray(cats) ? cats.includes(currentCategory) : cats === currentCategory;
+                        cats = JSON.parse(raw);
+                        if (!Array.isArray(cats)) cats = [cats];
                     } catch (e) {
-                        return raw === currentCategory;
+                        cats = [raw];
                     }
-                });
-                if (letterToLeaves[letter].length === 0) {
-                    delete letterToLeaves[letter];
                 }
+                
+                if (currentCategory === 'Excluídos') {
+                    return cats.includes('excluidos') || cats.includes('Excluídos');
+                } else if (currentCategory === 'Planilha') {
+                    return !cats.includes('excluidos') && !cats.includes('Excluídos');
+                } else {
+                    // Match category (case insensitive or exact)
+                    const match = cats.some(c => c.toLowerCase().trim() === currentCategory.toLowerCase().trim());
+                    return match && !cats.includes('excluidos') && !cats.includes('Excluídos');
+                }
+            });
+            if (letterToLeaves[letter].length === 0) {
+                delete letterToLeaves[letter];
             }
-            for (let letter in letterToIndex) {
-                if (!letterToLeaves[letter]) {
-                    delete letterToIndex[letter];
-                }
+        }
+        for (let letter in letterToIndex) {
+            if (!letterToLeaves[letter]) {
+                delete letterToIndex[letter];
             }
         }
 
@@ -523,10 +627,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     const t = v.trim();
                     if (t && sheetNameSet.has(t)) {
                         const displayName = sheetToCondo[t] || t;
-                        html += `<td><button class="cond-link" data-sheet="${encodeURIComponent(t)}">
-                            <i class="fa-solid fa-building" style="font-size:11px;margin-right:6px;opacity:.7;"></i>${displayName}
-                            <i class="fa-solid fa-arrow-right" style="font-size:10px;margin-left:6px;opacity:.5;"></i>
-                        </button></td>`;
+                        html += `<td>
+                            <div style="position:relative; display:flex; align-items:center; gap:6px;">
+                                <button class="cond-link" data-sheet="${encodeURIComponent(t)}" style="flex-grow:1;">
+                                    <i class="fa-solid fa-building" style="font-size:11px;margin-right:6px;opacity:.7;"></i>${displayName}
+                                    <i class="fa-solid fa-arrow-right" style="font-size:10px;margin-left:6px;opacity:.5;"></i>
+                                </button>
+                                <button class="delete-condo-btn" data-sheet="${encodeURIComponent(t)}" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:12px; padding:4px;" title="Excluir Condomínio">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>`;
                     } else {
                         html += `<td>${v}</td>`;
                     }
@@ -546,10 +657,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             leafSheets.forEach(name => {
                 const displayName = sheetToCondo[name] || name;
-                html += `<button class="cond-card" data-sheet="${encodeURIComponent(name)}">
-                    <i class="fa-solid fa-building" style="font-size:20px;margin-bottom:6px;color:#818cf8;"></i>
-                    <span>${displayName}</span>
-                </button>`;
+                html += `
+                <div style="position:relative; display:inline-block;">
+                    <button class="cond-card" data-sheet="${encodeURIComponent(name)}">
+                        <i class="fa-solid fa-building" style="font-size:20px;margin-bottom:6px;color:#818cf8;"></i>
+                        <span>${displayName}</span>
+                    </button>
+                    <button class="delete-condo-btn" data-sheet="${encodeURIComponent(name)}" style="position:absolute; top:5px; right:5px; background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; cursor:pointer; font-size:12px; padding:4px; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; z-index:10; transition:all 0.2s;" title="Excluir Condomínio">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>`;
             });
 
             html += `</div>`;
@@ -569,6 +686,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     showLetterGroup(workbook, letter, letterToIndex, letterToLeaves, breadcrumb, letterBar);
                 }, letterBar, workbook, letterToIndex, letterToLeaves);
                 openLeafSheet(workbook, sheetName);
+            });
+        });
+
+        tableContainer.querySelectorAll('.delete-condo-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const sheetName = decodeURIComponent(btn.dataset.sheet);
+                if (confirm(`Tem certeza que deseja excluir o condomínio "${sheetName}"?`)) {
+                    localStorage.setItem('condo_cat_' + sheetName, JSON.stringify(['excluidos']));
+                    alert("Condomínio movido para Excluídos!");
+                    buildNav(workbook);
+                }
             });
         });
     }

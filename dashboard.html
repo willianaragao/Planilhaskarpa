@@ -39,10 +39,19 @@
 
             <!-- Navigation items -->
             <nav class="sidebar-nav">
-                <a href="#" class="sidebar-link active" id="navPlanilha">
-                    <i class="fa-solid fa-table-cells-large"></i>
-                    <span>Planilha</span>
-                </a>
+                <div class="sidebar-dropdown">
+                    <a href="#" class="sidebar-link active" id="navPlanilha">
+                        <i class="fa-solid fa-table-cells-large"></i>
+                        <span>Planilha</span>
+                        <i class="fa-solid fa-chevron-down dropdown-arrow" style="margin-left: auto; font-size: 11px; transition: transform 0.2s;"></i>
+                    </a>
+                    <div class="sidebar-submenu" id="planilhaSubmenu" style="display: none; padding-left: 20px; flex-direction: column; gap: 4px; margin-top: 4px;">
+                        <a href="#" class="sidebar-sublink" id="btnNewCondo" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #94a3b8; font-size: 13px; text-decoration: none; border-radius: 6px; transition: all 0.2s;">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Novo Condomínio</span>
+                        </a>
+                    </div>
+                </div>
                 <a href="#" class="sidebar-link" id="navAguaDesinsetizacao">
                     <i class="fa-solid fa-droplet"></i>
                     <span>Água e Desinsetização</span>
@@ -66,6 +75,10 @@
                 <a href="#" class="sidebar-link" id="navNotaFiscal">
                     <i class="fa-solid fa-file-invoice-dollar"></i>
                     <span>Nota Fiscal</span>
+                </a>
+                <a href="#" class="sidebar-link" id="navExcluidos">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Excluídos</span>
                 </a>
                 <label for="importInput" class="sidebar-link" id="btnImport" style="cursor:pointer;">
                     <i class="fa-solid fa-file-import"></i>
@@ -114,9 +127,46 @@
         </main>
     </div>
 
+    <!-- Modal Novo Condomínio -->
+    <div id="newCondoModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: #1e293b; color: #f1f5f9; padding: 25px; border-radius: 12px; border: 1px solid #475569; width: 100%; max-width: 500px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: white;">Adicionar Novo Condomínio</h2>
+                <button id="closeNewCondoModal" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="newCondoForm" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #94a3b8;">Nome do Condomínio</label>
+                    <input type="text" id="condoName" required style="background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #94a3b8;">CNPJ</label>
+                    <input type="text" id="condoCNPJ" required style="background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #94a3b8;">Rua</label>
+                    <input type="text" id="condoRua" required style="background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #94a3b8;">Bairro</label>
+                    <input type="text" id="condoBairro" required style="background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #94a3b8;">CEP</label>
+                    <input type="text" id="condoCEP" required style="background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #94a3b8;">Cidade</label>
+                    <input type="text" id="condoCidade" required style="background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; font-size: 14px;">
+                </div>
+                <button type="submit" style="background: #6366f1; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: background 0.2s;">Criar Condomínio</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Hidden file input -->
     <input type="file" id="importInput" accept=".xlsx, .xls" style="display:none;">
 
-    <script src="dashboard.js?v=15"></script>
+    <script src="dashboard.js?v=16"></script>
 </body>
 </html>
