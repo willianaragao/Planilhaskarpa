@@ -498,7 +498,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const parseVal = (str) => {
                 if (!str) return 0;
-                let clean = str.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
+                let clean = str.replace(/[^\d.,-]/g, '').trim();
+                
+                if (clean.includes('.') && clean.includes(',')) {
+                    clean = clean.replace(/\./g, '').replace(',', '.');
+                } else if (clean.includes(',') && !clean.includes('.')) {
+                    clean = clean.replace(',', '.');
+                } else if (clean.includes('.') && !clean.includes(',')) {
+                    const parts = clean.split('.');
+                    if (parts[parts.length - 1].length > 2) {
+                        clean = clean.replace(/\./g, '');
+                    }
+                }
+                
                 let num = parseFloat(clean);
                 return isNaN(num) ? 0 : num;
             };
