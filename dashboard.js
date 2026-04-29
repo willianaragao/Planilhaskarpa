@@ -466,24 +466,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (colHeaderRow < 0) return;
 
-            const dynamicPagoCols = [];
-            const dynamicValorNotaCols = [];
-            const dynamicAReceberCols = [];
+            const tables = [];
 
             for (let c = 0; c <= maxCol; c++) {
                 const v = cellVal(ws, colHeaderRow, c).trim().toLowerCase();
-                if (v === 'pago') {
-                    dynamicPagoCols.push(c);
-                } else if (v === 'valor da nota' || v === 'valor nota' || v === 'vl nota' || v.includes('valor da nota')) {
-                    dynamicValorNotaCols.push(c);
-                } else if (v === 'à receber' || v === 'a receber' || v === 'receber' || v.includes('receber')) {
-                    dynamicAReceberCols.push(c);
+                if (v === 'mês' || v === 'mes') {
+                    let tableObj = { mesCol: c, anoCol: c+1, valorNotaCol: -1, aReceberCol: -1, pagoCol: -1 };
+                    
+                    for (let c2 = c + 1; c2 <= maxCol; c2++) {
+                        const v2 = cellVal(ws, colHeaderRow, c2).trim().toLowerCase();
+                        if (v2 === 'mês' || v2 === 'mes') break;
+                        
+                        if (v2 === 'pago') {
+                            tableObj.pagoCol = c2;
+                        } else if (v2 === 'valor da nota' || v2 === 'valor nota' || v2 === 'vl nota' || v2.includes('valor da nota')) {
+                            tableObj.valorNotaCol = c2;
+                        } else if (v2 === 'à receber' || v2 === 'a receber' || v2 === 'receber' || v2.includes('receber')) {
+                            tableObj.aReceberCol = c2;
+                        } else if (v2 === 'ano') {
+                            tableObj.anoCol = c2;
+                        }
+                    }
+                    
+                    if (tableObj.valorNotaCol === -1) tableObj.valorNotaCol = c + 3;
+                    if (tableObj.aReceberCol === -1) tableObj.aReceberCol = c + 7;
+                    if (tableObj.pagoCol === -1) tableObj.pagoCol = c + 8;
+                    
+                    tables.push(tableObj);
                 }
             }
-
-            if (dynamicValorNotaCols.length === 0) dynamicValorNotaCols.push(3);
-            if (dynamicAReceberCols.length === 0) dynamicAReceberCols.push(7);
-            if (dynamicPagoCols.length === 0) dynamicPagoCols.push(8);
 
             const parseVal = (str) => {
                 if (!str) return 0;
@@ -493,50 +504,44 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             for (let r = colHeaderRow + 1; r <= maxRow; r++) {
-                const mes = cellVal(ws, r, 0).trim();
-                const ano = cellVal(ws, r, 1).trim();
+                tables.forEach(t => {
+                    const mes = cellVal(ws, r, t.mesCol).trim();
+                    const ano = cellVal(ws, r, t.anoCol).trim();
 
-                if (!mes || !ano) continue;
+                    if (!mes || !ano) return;
 
-                let valorNota = 0;
-                dynamicValorNotaCols.forEach(c => {
-                    valorNota += parseVal(cellVal(ws, r, c).trim());
-                });
+                    const valorNota = parseVal(cellVal(ws, r, t.valorNotaCol).trim());
+                    const p = cellVal(ws, r, t.pagoCol).trim().toUpperCase();
+                    const isPaid = (p === 'PG' || p === 'TRUE');
 
-                let aReceber = 0;
-                let isPaid = false;
+                    let aReceber = 0;
+                    if (isPaid) {
+                        aReceber = parseVal(cellVal(ws, r, t.aReceberCol).trim());
+                    }
 
-                dynamicPagoCols.forEach(c => {
-                    const p = cellVal(ws, r, c).trim().toUpperCase();
-                    if (p === 'PG' || p === 'TRUE') isPaid = true;
-                });
+                    if (valorNota === 0 && aReceber === 0) return;
 
-                if (isPaid) {
-                    dynamicAReceberCols.forEach(c => {
-                        aReceber += parseVal(cellVal(ws, r, c).trim());
+                    const key = `${mes} / ${ano}`;
+                    if (!financeData[key]) {
+                        financeData[key] = { entrada: 0, faturamento: 0, items: [], mes, ano };
+                    }
+
+                    financeData[key].faturamento += valorNota;
+                    
+                    if (isPaid) {
+                        financeData[key].entrada += aReceber;
+                    }
+
+                    financeData[key].items.push({
+                        condominio: sheetToCondo[name] || name,
+                        valorNota,
+                        aReceber: isPaid ? aReceber : 0,
+                        isPaid
                     });
-                }
-
-                if (valorNota === 0 && aReceber === 0) continue;
-
-                const key = `${mes} / ${ano}`;
-                if (!financeData[key]) {
-                    financeData[key] = { entrada: 0, faturamento: 0, items: [], mes, ano };
-                }
-
-                financeData[key].faturamento += valorNota;
-                
-                if (isPaid) {
-                    financeData[key].entrada += aReceber;
-                }
-
-                financeData[key].items.push({
-                    condominio: sheetToCondo[name] || name,
-                    valorNota,
-                    aReceber: isPaid ? aReceber : 0,
-                    isPaid
                 });
             }
+
+
         });
 
         let html = `
