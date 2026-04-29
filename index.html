@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase SDK e Config -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo em png.png">
@@ -34,10 +37,10 @@
 
             <form id="loginForm" class="login-form">
                 <div class="input-group">
-                    <label for="username">Usuário</label>
+                    <label for="username">E-mail</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-user"></i>
-                        <input type="text" id="username" placeholder="Digite seu usuário" required autocomplete="username">
+                        <input type="email" id="username" placeholder="Digite seu e-mail" required autocomplete="email">
                     </div>
                 </div>
 
@@ -74,6 +77,6 @@
         </div>
     </main>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

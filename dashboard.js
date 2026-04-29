@@ -1,3 +1,5 @@
+import { sbSaveWorkbook, sbLoadWorkbook, sbSaveMetadata, sbLoadMetadata } from './supabase-service.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // Check Auth
     if (localStorage.getItem('isLoggedIn') !== 'true') {
@@ -202,44 +204,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let sheetFormatting = {}; 
     let currentSheetName = ''; 
     let serverCategories = {};
+    const userEmail = localStorage.getItem('userEmail');
 
-    function loadCategoriesFromServer() {
-        return fetch('/load_categories')
-            .then(r => r.json())
-            .then(data => {
-                serverCategories = data || {};
-                for (let key in serverCategories) {
-                    localStorage.setItem('condo_cat_' + key, JSON.stringify(serverCategories[key]));
-                }
-            })
-            .catch(err => console.error('Erro ao carregar categorias do servidor:', err));
+    async function loadCategoriesFromServer() {
+        if (!userEmail) return;
+        const meta = await sbLoadMetadata(userEmail);
+        serverCategories = meta.categories || {};
+        for (let key in serverCategories) {
+            localStorage.setItem('condo_cat_' + key, JSON.stringify(serverCategories[key]));
+        }
     }
 
-    function saveCategoriesToServer() {
-        return fetch('/save_categories', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(serverCategories)
-        }).catch(err => console.error('Erro ao salvar categorias no servidor:', err));
+    async function saveCategoriesToServer() {
+        if (!userEmail) return;
+        await sbSaveMetadata(userEmail, { categories: serverCategories });
     }
 
-    function openDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            request.onsuccess = (e) => resolve(e.target.result);
-            request.onerror = (e) => reject(e.target.error);
-        });
-    }
+    async function saveWorkbookToDB(workbook) {
+        if (!workbook || !userEmail) return;
 
-    function saveWorkbookToDB(workbook) {
-        if (!workbook) return Promise.resolve();
-        
         const table = document.getElementById('spreadsheetTable');
         if (table && currentSheetName) {
             const domStates = [];
@@ -263,80 +246,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-
-        return fetch('/save_workbook', {
-            method: 'POST',
-            body: buffer
-        }).then(() => {
-            return fetch('/save_formatting', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(sheetFormatting)
-            });
-        }).catch(err => {
-            console.error('Falha ao salvar centralmente, usando fallback IndexedDB:', err);
-            return openDB().then(db => {
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    const store = tx.objectStore(STORE_NAME);
-                    store.put(buffer, KEY_NAME);
-                    store.put(sheetFormatting, 'formatting');
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = (e) => reject(e.target.error);
-                });
-            });
-        });
+        
+        // Salva arquivo no Storage e metadados no DB
+        await sbSaveWorkbook(userEmail, buffer);
+        await sbSaveMetadata(userEmail, { formatting: sheetFormatting });
     }
 
-    function loadWorkbookFromDB() {
-        // 1. Carrega formatação do servidor
-        return fetch('/load_formatting')
-            .then(res => res.ok ? res.json() : {})
-            .then(fmt => {
-                sheetFormatting = fmt || {};
-                // 2. Tenta o workbook salvo pelo servidor (versão mais recente)
-                return fetch('/load_workbook');
-            })
-            .then(res => {
-                if (res.ok) {
-                    console.log('✅ Workbook carregado do servidor (/load_workbook)');
-                    return res.arrayBuffer();
-                }
-                // 3. Sem workbook salvo — fallback para o arquivo original estático
-                console.log('ℹ️ Sem workbook salvo, carregando arquivo original...');
-                return fetch('Planilha%20Cris.xlsx')
-                    .then(r => {
-                        if (!r.ok) throw new Error('Arquivo original não encontrado');
-                        return r.arrayBuffer();
-                    });
-            })
-            .catch(err => {
-                console.warn('Tentando IndexedDB como fallback:', err.message);
-                // 4. Último recurso: IndexedDB do navegador
-                return openDB().then(db => {
-                    return new Promise((resolve, reject) => {
-                        const tx = db.transaction(STORE_NAME, 'readonly');
-                        const store = tx.objectStore(STORE_NAME);
-                        const reqWorkbook = store.get(KEY_NAME);
-                        const reqFormatting = store.get('formatting');
-                        tx.oncomplete = () => {
-                            if (reqFormatting.result) sheetFormatting = reqFormatting.result;
-                            resolve(reqWorkbook.result || null);
-                        };
-                        tx.onerror = (e) => reject(e.target.error);
-                    });
-                });
-            });
+    async function loadWorkbookFromDB() {
+        if (!userEmail) return null;
+
+        // 1. Carrega formatações do DB
+        const meta = await sbLoadMetadata(userEmail);
+        sheetFormatting = meta.formatting || {};
+
+        // 2. Carrega a planilha do Storage
+        const buf = await sbLoadWorkbook(userEmail);
+        if (buf) {
+            console.log('✅ Planilha carregada da nuvem Supabase.');
+            return buf;
+        }
+
+        // 3. Se não tiver nada na nuvem ainda, fallback para o arquivo local padrão
+        console.log('ℹ️ Sem arquivo na nuvem, carregando planilha padrão...');
+        try {
+            const res = await fetch('Planilha%20Cris.xlsx');
+            if (res.ok) return await res.arrayBuffer();
+        } catch (e) {
+            console.error("Erro ao carregar planilha padrão:", e);
+        }
+
+        return null;
     }
 
     let autoSaveTimeout = null;
     function triggerAutoSave() {
         clearTimeout(autoSaveTimeout);
-        autoSaveTimeout = setTimeout(() => {
-            saveWorkbookToDB(currentWorkbook)
-                .then(() => console.log('Planilha e formatações salvas automaticamente.'))
-                .catch(err => console.error('Erro ao salvar planilha:', err));
-        }, 1000);
+        autoSaveTimeout = setTimeout(async () => {
+            await saveWorkbookToDB(currentWorkbook);
+            console.log('Planilha e formatações salvas na nuvem Supabase.');
+        }, 1500);
     }
 
     // ─────────────────────────────────────────────────────────────

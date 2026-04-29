@@ -1,67 +1,60 @@
+// ─────────────────────────────────────────────────────────────────
+// APP.JS — Login com Supabase
+// ─────────────────────────────────────────────────────────────────
+
+import { sbLogin } from './supabase-service.js';
+
 document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('loginForm');
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
+    const loginForm       = document.getElementById('loginForm');
+    const usernameInput   = document.getElementById('username');
+    const passwordInput   = document.getElementById('password');
     const togglePasswordBtn = document.getElementById('togglePassword');
-    const errorMessage = document.getElementById('errorMessage');
-    const btnLogin = document.getElementById('btnLogin');
+    const errorMessage    = document.getElementById('errorMessage');
+    const errorSpan       = errorMessage?.querySelector('span');
+    const btnLogin        = document.getElementById('btnLogin');
 
-    // Hardcoded credentials for demonstration
-    const VALID_USER = 'admin';
-    const VALID_PASS = '123456';
+    // Se já está logado no localStorage, podemos manter ou checar
+    if (localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('userEmail')) {
+         window.location.href = 'dashboard.html';
+    }
 
-    // Toggle Password Visibility
-    togglePasswordBtn.addEventListener('click', () => {
+    // ── Toggle visibilidade da senha ─────────────────────────────
+    togglePasswordBtn?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        
-        // Toggle icon
         const icon = togglePasswordBtn.querySelector('i');
-        if (type === 'text') {
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
     });
 
-    // Form Submission
-    loginForm.addEventListener('submit', (e) => {
+    // ── Submissão do formulário ──────────────────────────────────
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        // Reset state
+
         errorMessage.style.display = 'none';
         btnLogin.classList.add('loading');
 
-        const username = usernameInput.value.trim();
+        const email    = usernameInput.value.trim();
         const password = passwordInput.value;
 
-        // Simulate API Call
-        setTimeout(() => {
+        try {
+            const user = await sbLogin(email, password);
+            
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userEmail', user.email);
+            localStorage.setItem('username', user.email.split('@')[0]); // Usa o início do email como nome
+            
+            window.location.href = 'dashboard.html';
+        } catch (err) {
             btnLogin.classList.remove('loading');
-
-            if (username === VALID_USER && password === VALID_PASS) {
-                // Success
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('username', username);
-                
-                // Redirect to dashboard (to be created)
-                window.location.href = 'dashboard.html';
-            } else {
-                // Failure
-                errorMessage.style.display = 'flex';
-                // Shake animation trigger
-                errorMessage.style.animation = 'none';
-                errorMessage.offsetHeight; // trigger reflow
-                errorMessage.style.animation = null;
-            }
-        }, 1500); // 1.5s delay for realistic feel
+            if (errorSpan) errorSpan.textContent = typeof err === 'string' ? err : 'Usuário ou senha incorretos.';
+            errorMessage.style.display = 'flex';
+        }
     });
 
-    // Clear error message on input
+    // ── Limpa erro ao digitar ────────────────────────────────────
     [usernameInput, passwordInput].forEach(input => {
-        input.addEventListener('input', () => {
+        input?.addEventListener('input', () => {
             errorMessage.style.display = 'none';
         });
     });
