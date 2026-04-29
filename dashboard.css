@@ -1,0 +1,714 @@
+/* ── APP LAYOUT: Sidebar + Main ─────────────────────────────────── */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────────── */
+.sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 16px;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+}
+
+/* Logo inside sidebar */
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: 8px;
+}
+
+.sidebar-logo-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    flex-shrink: 0;
+}
+
+.sidebar-logo-text {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: -0.3px;
+}
+
+/* Nav links */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.18s ease;
+    border: 1px solid transparent;
+    background: none;
+    width: 100%;
+    font-family: var(--font-family);
+}
+
+.sidebar-link i {
+    font-size: 15px;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.sidebar-link:hover {
+    background: rgba(99, 102, 241, 0.12);
+    color: #c7d2fe;
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.sidebar-link.active {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+    border-color: rgba(99, 102, 241, 0.3);
+    font-weight: 600;
+}
+
+/* Sidebar footer: user + logout */
+.sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    margin-top: auto;
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-avatar {
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: white;
+    flex-shrink: 0;
+}
+
+#userGreeting {
+    font-size: 13px;
+    font-weight: 500;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-logout {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+}
+
+.sidebar-logout:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* ── MAIN CONTENT ────────────────────────────────────────────────── */
+.dash-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 30px;
+    min-width: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* Content header (title row) */
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.title-section h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.title-section p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.action-section {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-action {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all var(--transition-fast);
+}
+
+.btn-action:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-action.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border: 1px solid var(--card-border);
+}
+
+.btn-action.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Controls Card */
+.controls-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    padding: 20px;
+    border-radius: 16px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.search-wrapper {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-wrapper i {
+    position: absolute;
+    left: 16px;
+    color: var(--text-secondary);
+}
+
+.search-wrapper input {
+    width: 100%;
+    padding: 12px 16px 12px 44px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.search-wrapper input:focus {
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+}
+
+.filter-wrapper select {
+    padding: 12px 16px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    outline: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-wrapper select:focus {
+    border-color: var(--input-focus);
+}
+
+/* Spreadsheet/Table Card */
+.spreadsheet-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 400px;
+}
+
+/* Navigation + tabs area — fixed, never scrolls */
+.excel-tabs {
+    flex-shrink: 0;
+}
+
+/* Content area — scrolls both directions */
+.table-responsive {
+    flex: 1;
+    overflow: auto;
+    scroll-behavior: smooth;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.data-table th {
+    background: rgba(15, 23, 42, 0.4);
+    padding: 16px 24px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--card-border);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-table td {
+    padding: 18px 24px;
+    font-size: 15px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--card-border);
+}
+
+.data-table tbody tr {
+    transition: background-color var(--transition-fast);
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Status Badges */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.badge.ativo {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+}
+
+.badge.ativo::before {
+    background: #10b981;
+}
+
+.badge.pendente {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+}
+
+.badge.pendente::before {
+    background: #f59e0b;
+}
+
+.badge.cancelado {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+}
+
+.badge.cancelado::before {
+    background: #ef4444;
+}
+
+/* Action Buttons */
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-icon.edit:hover {
+    color: var(--primary-color);
+}
+
+.btn-icon.delete:hover {
+    color: var(--error-color);
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    animation: fadeInModal 0.3s ease-out;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: #1e1b4b;
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 30px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.close-modal:hover {
+    color: var(--text-primary);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.form-grid .full-width {
+    grid-column: 1 / -1;
+}
+
+.form-grid input, 
+.form-grid select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    outline: none;
+}
+
+.form-grid input:focus, 
+.form-grid select:focus {
+    border-color: var(--input-focus);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Responsive Dashboard */
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Excel Tabs — flexible column for multi-level nav */
+.excel-tabs {
+    display: flex;
+    flex-direction: column;
+    padding: 0 !important;
+    background: rgba(15, 23, 42, 0.7);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.excel-tab {
+    padding: 6px 16px;
+    background: #334155;
+    color: #94a3b8;
+    border: 1px solid #475569;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.excel-tab:hover { background: #475569; color: #f1f5f9; }
+.excel-tab.active { background: #10b981; color: white; border-color: #10b981; font-weight: 600; }
+
+/* Navigation table (index of condominiums) */
+.nav-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: white;
+    color: #1e293b;
+}
+
+.nav-table thead th {
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 12px 18px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #334155;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.nav-table tbody tr {
+    transition: background 0.15s;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.nav-table tbody tr:hover {
+    background: #f0f4ff;
+}
+
+.nav-table tbody td {
+    padding: 10px 18px;
+    vertical-align: middle;
+}
+
+/* Clickable condominium button inside the table */
+.cond-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    color: white;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+}
+
+.cond-link:hover {
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(99,102,241,0.45);
+}
+
+/* Card for leaf (individual) condominium sheets */
+.cond-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 160px;
+    min-height: 80px;
+    padding: 12px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(129,140,248,0.25);
+    background: rgba(99,102,241,0.08);
+    color: #c7d2fe;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    word-break: break-word;
+    line-height: 1.3;
+}
+
+.cond-card:hover {
+    background: rgba(99,102,241,0.2);
+    border-color: #6366f1;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(99,102,241,0.35);
+}
+
+/* Dynamic Excel-like Table */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table-responsive table {
+    border-collapse: collapse;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 13px;
+    background: white;
+    color: #334155;
+}
+
+.table-responsive table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid #cbd5e1;
+    padding: 4px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table-responsive table tbody th {
+    position: sticky;
+    left: 0;
+    background: #f8fafc;
+    z-index: 5;
+    border: 1px solid #cbd5e1;
+}
+
+.table-responsive table thead th:first-child {
+    left: 0;
+    z-index: 15;
+}
+
+.table-responsive table td {
+    border: 1px solid #e2e8f0;
+    padding: 5px 12px;
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+.table-responsive table tbody tr:nth-child(even) { background: #f8fafc; }
+.table-responsive table tr:hover { background: #eff6ff; }
+
+/* ── Custom Scrollbar inside spreadsheet card ─────────────────── */
+.table-responsive::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.5);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: background 0.2s;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.85);
+    background-clip: content-box;
+}
+
+.table-responsive::-webkit-scrollbar-corner {
+    background: rgba(15, 23, 42, 0.4);
+}

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - Planilha</title>
+    <meta name="description" content="Visualização da planilha de dados.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <!-- SheetJS for Excel Import -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="background-animation">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+
+    <!-- Layout wrapper: sidebar + main -->
+    <div class="app-layout">
+
+        <!-- ── SIDEBAR ───────────────────────────────────────────── -->
+        <aside class="sidebar">
+            <!-- Logo -->
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-icon">
+                    <i class="fa-solid fa-table-list"></i>
+                </div>
+                <span class="sidebar-logo-text">CristianaPanel</span>
+            </div>
+
+            <!-- Navigation items -->
+            <nav class="sidebar-nav">
+                <a href="#" class="sidebar-link active">
+                    <i class="fa-solid fa-table-cells-large"></i>
+                    <span>Planilha</span>
+                </a>
+                <label for="importInput" class="sidebar-link" id="btnImport" style="cursor:pointer;">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Importar</span>
+                </label>
+                <a href="#" class="sidebar-link" id="btnExport">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Exportar</span>
+                </a>
+            </nav>
+
+            <!-- Bottom: user + logout -->
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <span id="userGreeting">Admin</span>
+                </div>
+                <button id="btnLogout" class="sidebar-logout" title="Sair">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ── MAIN CONTENT ──────────────────────────────────────── -->
+        <main class="dash-content">
+            <!-- Page header -->
+            <div class="content-header">
+                <div class="title-section">
+                    <h1>Planilha de Dados</h1>
+                    <p>Visualize suas informações no formato original do Excel.</p>
+                </div>
+            </div>
+
+
+
+            <!-- Spreadsheet Card -->
+            <div class="spreadsheet-card">
+                <div class="excel-tabs" id="excelTabs"></div>
+                <div class="table-responsive" id="tableContainer">
+                    <!-- Data will be populated by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="importInput" accept=".xlsx, .xls" style="display:none;">
+
+    <script src="dashboard.js?v=6"></script>
+</body>
+</html>

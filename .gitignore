@@ -1,0 +1,5 @@
+.gemini/
+__pycache__/
+*.pyc
+*.tmp
+.antigravityignore
