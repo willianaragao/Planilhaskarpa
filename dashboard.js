@@ -1348,23 +1348,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 triggerAutoSave();
 
+                const parseVal = (str) => {
+                    if (!str) return 0;
+                    let clean = str.replace(/[^\d.,-]/g, '').trim();
+                    if (clean.includes('.') && clean.includes(',')) {
+                        clean = clean.replace(/\./g, '').replace(',', '.');
+                    } else if (clean.includes(',') && !clean.includes('.')) {
+                        clean = clean.replace(',', '.');
+                    } else if (clean.includes('.') && !clean.includes(',')) {
+                        const parts = clean.split('.');
+                        if (parts[parts.length - 1].length > 2) {
+                            clean = clean.replace(/\./g, '');
+                        }
+                    }
+                    let num = parseFloat(clean);
+                    return isNaN(num) ? 0 : num;
+                };
+
                 // Recalculate Formulas for Left Section (A-I)
                 if (c === 3) { // VALOR DA NOTA changed (Col D)
-                    const valorNota = parseFloat(val);
-                    if (!isNaN(valorNota)) {
+                    const valorNota = parseVal(val);
+                    if (valorNota > 0) {
                         const mo = valorNota * 0.8;
                         const me = valorNota * 0.2;
                         const inss = mo * 0.11;
                         const receber = valorNota - inss;
 
-                        updateCell(r, 4, mo.toFixed(2));
-                        updateCell(r, 5, me.toFixed(2));
-                        updateCell(r, 6, inss.toFixed(2));
-                        updateCell(r, 7, receber.toFixed(2));
+                        updateCell(r, 4, mo);
+                        updateCell(r, 5, me);
+                        updateCell(r, 6, inss);
+                        updateCell(r, 7, receber);
 
                         // ── Replicate for next 11 months if this is the first row ──
                         if (r === colHeaderRow + 1) {
-                            replicateRows(r, valorNota);
+                            replicateRows(r, valorNota, val);
                         }
                     } else {
                         updateCell(r, 4, '');
@@ -1376,17 +1393,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Recalculate Formulas for Right Section (K-S)
                 if (c === 13) { // VALOR DA NOTA changed (Col N)
-                    const valorNota = parseFloat(val);
-                    if (!isNaN(valorNota)) {
+                    const valorNota = parseVal(val);
+                    if (valorNota > 0) {
                         const mo = valorNota * 0.8;
                         const me = valorNota * 0.2;
                         const inss = mo * 0.11;
                         const receber = valorNota - inss;
 
-                        updateCell(r, 14, mo.toFixed(2));
-                        updateCell(r, 15, me.toFixed(2));
-                        updateCell(r, 16, inss.toFixed(2));
-                        updateCell(r, 17, receber.toFixed(2));
+                        updateCell(r, 14, mo);
+                        updateCell(r, 15, me);
+                        updateCell(r, 16, inss);
+                        updateCell(r, 17, receber);
                     } else {
                         updateCell(r, 14, '');
                         updateCell(r, 15, '');
@@ -1395,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                function replicateRows(startRow, valorNota) {
+                function replicateRows(startRow, valorNota, origVal) {
                     // Get base values from startRow
                     const baseMes = cellVal(ws, startRow, 0).trim();
                     const baseAno = cellVal(ws, startRow, 1).trim();
@@ -1447,7 +1464,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateDataCell(targetRow, 0, newMes);
                         updateDataCell(targetRow, 1, newAno);
                         updateDataCell(targetRow, 2, newParcela);
-                        updateDataCell(targetRow, 3, String(valorNota));
+                        updateDataCell(targetRow, 3, origVal || String(valorNota));
 
                         // Calculate Formulas for target row
                         const mo = valorNota * 0.8;
@@ -1455,10 +1472,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const inss = mo * 0.11;
                         const receber = valorNota - inss;
 
-                        updateCell(targetRow, 4, mo.toFixed(2));
-                        updateCell(targetRow, 5, me.toFixed(2));
-                        updateCell(targetRow, 6, inss.toFixed(2));
-                        updateCell(targetRow, 7, receber.toFixed(2));
+                        updateCell(targetRow, 4, mo);
+                        updateCell(targetRow, 5, me);
+                        updateCell(targetRow, 6, inss);
+                        updateCell(targetRow, 7, receber);
                     }
                 }
 
