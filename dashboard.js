@@ -289,15 +289,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadWorkbookFromDB() {
+        // 1. Carrega formatação do servidor
         return fetch('/load_formatting')
-            .then(res => res.json())
+            .then(res => res.ok ? res.json() : {})
             .then(fmt => {
                 sheetFormatting = fmt || {};
-                return fetch('Planilha%20Cris.xlsx');
+                // 2. Carrega a planilha do servidor (a versão mais recente salva)
+                return fetch('/load_workbook');
             })
-            .then(res => res.arrayBuffer())
+            .then(res => {
+                if (!res.ok) throw new Error('workbook not found on server');
+                return res.arrayBuffer();
+            })
             .catch(err => {
-                console.error('Falha ao ler dados centrais, usando fallback IndexedDB:', err);
+                console.warn('Servidor indisponível, tentando IndexedDB:', err.message);
                 return openDB().then(db => {
                     return new Promise((resolve, reject) => {
                         const tx = db.transaction(STORE_NAME, 'readonly');
@@ -305,8 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const reqWorkbook = store.get(KEY_NAME);
                         const reqFormatting = store.get('formatting');
                         tx.oncomplete = () => {
-                            sheetFormatting = reqFormatting.result || {};
-                            resolve(reqWorkbook.result);
+                            if (reqFormatting.result) sheetFormatting = reqFormatting.result;
+                            resolve(reqWorkbook.result || null);
                         };
                         tx.onerror = (e) => reject(e.target.error);
                     });
@@ -368,42 +373,25 @@ document.addEventListener('DOMContentLoaded', () => {
             loadWorkbookFromDB()
                 .then(buf => {
                     if (buf) {
-                        console.log('Planilha carregada do armazenamento persistente.');
+                        console.log('✅ Planilha carregada do servidor.');
                         currentWorkbook = XLSX.read(new Uint8Array(buf), { type: 'array' });
                         buildNav(currentWorkbook);
                     } else {
-                    // Fallback to server file
-                    fetch('Planilha%20Cris.xlsx')
-                        .then(r => { if (!r.ok) throw new Error('not found'); return r.arrayBuffer(); })
-                        .then(serverBuf => {
-                            currentWorkbook = XLSX.read(new Uint8Array(serverBuf), { type: 'array' });
-                            buildNav(currentWorkbook);
-                        })
-                        .catch(() => {
-                            tableContainer.innerHTML = `
-                                <p style="text-align:center;padding:20px;color:#f87171;">
-                                    Não foi possível carregar <strong>Planilha Cris.xlsx</strong>.<br>
-                                    Use <strong>Importar Excel</strong> para carregar manualmente.
-                                </p>`;
-                        });
-                }
-            })
-            .catch(err => {
-                console.error('Erro ao ler IndexedDB:', err);
-                // Fallback to server file
-                fetch('Planilha%20Cris.xlsx')
-                    .then(r => { if (!r.ok) throw new Error('not found'); return r.arrayBuffer(); })
-                    .then(serverBuf => {
-                        currentWorkbook = XLSX.read(new Uint8Array(serverBuf), { type: 'array' });
-                        buildNav(currentWorkbook);
-                    })
-                    .catch(() => {
                         tableContainer.innerHTML = `
                             <p style="text-align:center;padding:20px;color:#f87171;">
-                                Não foi possível carregar <strong>Planilha Cris.xlsx</strong>.
+                                Não foi possível carregar <strong>Planilha Cris.xlsx</strong>.<br>
+                                Use <strong>Importar Excel</strong> para carregar manualmente.
                             </p>`;
-                    });
-            });
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro crítico ao carregar planilha:', err);
+                    tableContainer.innerHTML = `
+                        <p style="text-align:center;padding:20px;color:#f87171;">
+                            Erro ao carregar planilha. Verifique se o servidor está rodando.<br>
+                            <small style="color:#94a3b8;">${err.message || ''}</small>
+                        </p>`;
+                });
         });
     }
 
