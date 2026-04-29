@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navAguaEmail = document.getElementById('navAguaEmail');
     const navBoletoMaos = document.getElementById('navBoletoMaos');
     const navNotaFiscal = document.getElementById('navNotaFiscal');
+    const navFinanceiro = document.getElementById('navFinanceiro');
     const navExcluidos = document.getElementById('navExcluidos');
 
     function updateActiveNav(activeEl) {
@@ -85,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { el: navAguaEmail, cat: 'agua email' },
         { el: navBoletoMaos, cat: 'boleto em maos' },
         { el: navNotaFiscal, cat: 'Nota Fiscal' },
+        { el: navFinanceiro, cat: 'Financeiro' },
         { el: navExcluidos, cat: 'Excluídos' }
     ];
 
@@ -423,7 +425,198 @@ document.addEventListener('DOMContentLoaded', () => {
     //   4. Clicking a leaf opens the individual sheet in spreadsheet view.
     // ─────────────────────────────────────────────────────────────
 
+    function buildFinanceiroView(workbook) {
+        excelTabs.innerHTML = '';
+        tableContainer.innerHTML = `
+            <div style="text-align:center;padding:30px;color:#94a3b8;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;margin-bottom:12px;display:block;"></i>
+                Calculando lançamentos financeiros…
+            </div>`;
+
+        const financeData = {};
+        const monthMap = {
+            'janeiro': 1, 'fevereiro': 2, 'março': 3, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+            'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+        };
+
+        const sheetToCondo = workbook._sheetToCondo || {};
+
+        workbook.SheetNames.forEach(name => {
+            const up = name.toUpperCase().trim();
+            if (up === 'MENU' || up.startsWith('CONDOMÍNIO')) return;
+
+            const ws = workbook.Sheets[name];
+            if (!ws) return;
+
+            const ref = getSheetRange(ws);
+            if (!ref) return;
+
+            const range = XLSX.utils.decode_range(ref);
+            const maxRow = Math.min(range.e.r, 1000);
+
+            for (let r = 5; r <= maxRow; r++) {
+                const mes = cellVal(ws, r, 0).trim();
+                const ano = cellVal(ws, r, 1).trim();
+                const valorNotaRaw = cellVal(ws, r, 3).trim();
+                const aReceberRaw = cellVal(ws, r, 7).trim();
+                const pago1 = cellVal(ws, r, 8).trim();
+                const pago2 = cellVal(ws, r, 19).trim();
+
+                if (!mes || !ano) continue;
+
+                const isPaid = pago1 === 'PG' || pago2 === 'PG';
+
+                if (isPaid) {
+                    const parseVal = (str) => {
+                        if (!str) return 0;
+                        let clean = str.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
+                        let num = parseFloat(clean);
+                        return isNaN(num) ? 0 : num;
+                    };
+
+                    const valorNota = parseVal(valorNotaRaw);
+                    const aReceber = parseVal(aReceberRaw);
+
+                    const key = `${mes} / ${ano}`;
+                    if (!financeData[key]) {
+                        financeData[key] = { entrada: 0, faturamento: 0, items: [], mes, ano };
+                    }
+
+                    financeData[key].entrada += aReceber;
+                    financeData[key].faturamento += valorNota;
+                    financeData[key].items.push({
+                        condominio: sheetToCondo[name] || name,
+                        valorNota,
+                        aReceber
+                    });
+                }
+            }
+        });
+
+        let html = `
+            <div style="padding: 20px; background: #0f172a; border-radius: 12px; margin: 10px;">
+                <h2 style="color: white; font-size: 18px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-file-invoice-dollar" style="color: #22c55e;"></i> Controle Financeiro — Entradas
+                </h2>
+                
+                <div style="display: flex; gap: 16px; margin-bottom: 25px; flex-wrap: wrap;">
+                    <div style="background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.2); flex: 1; min-width: 200px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <span style="color: #94a3b8; font-size: 13px; font-weight: 500;">FATURAMENTO TOTAL (NOTAS)</span>
+                        <div id="totalFaturamento" style="color: white; font-size: 24px; font-weight: 700; margin-top: 8px;">R$ 0,00</div>
+                    </div>
+                    <div style="background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.4); flex: 1; min-width: 200px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); background: rgba(34, 197, 94, 0.05);">
+                        <span style="color: #22c55e; font-size: 13px; font-weight: 600;">ENTRADA EFETIVA (PAGO)</span>
+                        <div id="totalEntrada" style="color: #22c55e; font-size: 24px; font-weight: 700; margin-top: 8px;">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+                        <thead>
+                            <tr style="background: #1e293b; color: #cbd5e1; border-bottom: 1px solid #334155;">
+                                <th style="padding: 14px 16px; font-weight: 600;">Mês/Ano</th>
+                                <th style="padding: 14px 16px; font-weight: 600;">Faturamento (Notas)</th>
+                                <th style="padding: 14px 16px; font-weight: 600;">Entrada (À Receber)</th>
+                                <th style="padding: 14px 16px; font-weight: 600; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="financeiroBody" style="color: #e2e8f0; background: #0f172a;">
+        `;
+
+        let globalFaturamento = 0;
+        let globalEntrada = 0;
+
+        const sortedKeys = Object.keys(financeData).sort((a, b) => {
+            const dataA = financeData[a];
+            const dataB = financeData[b];
+            const yearDiff = parseInt(dataA.ano) - parseInt(dataB.ano);
+            if (yearDiff !== 0) return yearDiff;
+            
+            const m1 = monthMap[dataA.mes.toLowerCase().trim()] || 0;
+            const m2 = monthMap[dataB.mes.toLowerCase().trim()] || 0;
+            return m1 - m2;
+        });
+
+        if (sortedKeys.length === 0) {
+            html += `
+                <tr>
+                    <td colspan="4" style="padding: 30px; text-align: center; color: #94a3b8;">
+                        Nenhum lançamento marcado como <strong>PAGO (PG)</strong> encontrado.
+                    </td>
+                </tr>
+            `;
+        } else {
+            sortedKeys.forEach(key => {
+                const data = financeData[key];
+                globalFaturamento += data.faturamento;
+                globalEntrada += data.entrada;
+
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 14px 16px; font-weight: 500;">${key}</td>
+                        <td style="padding: 14px 16px;">${data.faturamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                        <td style="padding: 14px 16px; color: #22c55e; font-weight: 600;">${data.entrada.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                        <td style="padding: 14px 16px; text-align: center;">
+                            <button class="view-finance-details" data-key="${encodeURIComponent(key)}" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: #a5b4fc; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                Detalhes
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="details-${encodeURIComponent(key)}" style="display: none; background: rgba(15, 23, 42, 0.5);">
+                        <td colspan="4" style="padding: 15px 25px;">
+                            <div style="background: #1e293b; border-radius: 8px; padding: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                                <h4 style="margin-top: 0; color: white; font-size: 14px; margin-bottom: 10px;">Lançamentos de ${key}</h4>
+                                <table style="width:100%; border-collapse: collapse; font-size: 12px;">
+                                    <thead>
+                                        <tr style="color:#94a3b8; border-bottom: 1px solid #334155; text-align: left;">
+                                            <th style="padding: 8px;">Condomínio</th>
+                                            <th style="padding: 8px;">Faturamento</th>
+                                            <th style="padding: 8px;">Entrada</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.items.map(item => `
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                                <td style="padding: 8px; color: #e2e8f0;">${item.condominio}</td>
+                                                <td style="padding: 8px; color: #cbd5e1;">${item.valorNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                                <td style="padding: 8px; color: #22c55e;">${item.aReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        html += `</tbody></table></div></div>`;
+        tableContainer.innerHTML = html;
+
+        const totalFatEl = document.getElementById('totalFaturamento');
+        const totalEntEl = document.getElementById('totalEntrada');
+        if (totalFatEl) totalFatEl.textContent = globalFaturamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        if (totalEntEl) totalEntEl.textContent = globalEntrada.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        tableContainer.querySelectorAll('.view-finance-details').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = decodeURIComponent(btn.dataset.key);
+                const detailsRow = document.getElementById(`details-${encodeURIComponent(key)}`);
+                if (detailsRow) {
+                    const isHidden = detailsRow.style.display === 'none';
+                    detailsRow.style.display = isHidden ? 'table-row' : 'none';
+                    btn.textContent = isHidden ? 'Recolher' : 'Detalhes';
+                }
+            });
+        });
+    }
+
     function buildNav(workbook) {
+        if (currentCategory === 'Financeiro') {
+            buildFinanceiroView(workbook);
+            return;
+        }
         excelTabs.innerHTML = '';
         const headerCatContainer = document.getElementById('headerCategoryContainer');
         if (headerCatContainer) headerCatContainer.innerHTML = '';
